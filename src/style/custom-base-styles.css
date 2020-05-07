@@ -1,0 +1,18 @@
+@font-face{
+    font-family: GothamProReg;
+    font-weight: 300;
+    src: url(../fonts/GothamPro.woff);
+}
+@font-face{
+    font-family: GothamProMedium;
+    font-weight: 500;
+    src: url(../fonts/GothamPro-Medium.woff);
+}
+@font-face{
+    font-family: GothamProBold;
+    font-weight: 700;
+    src: url(../fonts/GothamPro-Bold.woff);
+}
+.text-normal{
+    @apply whitespace-pre-wrap text-accent;
+}

@@ -1,0 +1,26 @@
+body{
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: #0d0747 #ccc;
+    /* width */
+    &::-webkit-scrollbar {
+    width: 3px;
+    }
+
+    /* Track */
+    &::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+    }
+
+    /* Handle */
+    &::-webkit-scrollbar-thumb {
+        background:  rgb(31, 15, 75);
+        border-radius: 5px; 
+    }
+
+    /* Handle on hover */
+    &::-webkit-scrollbar-thumb:hover {
+    background: #0d0747; 
+    }
+}
