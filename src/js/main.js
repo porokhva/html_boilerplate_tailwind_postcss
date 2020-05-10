@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function isEmpty(str) {
     if (str.trim() == "") return true;
-
     return false;
   }
   const scrollAnchors = new SmoothScroll('a[href*="#"]', {

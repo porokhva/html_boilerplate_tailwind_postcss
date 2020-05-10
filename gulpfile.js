@@ -4,6 +4,7 @@ let gulp = require("gulp"),
   postcss = require("gulp-postcss"),
   watch = require("gulp-watch"),
   babel = require("gulp-babel"),
+  del = require('del'),
   concat = require("gulp-concat"),
   cssmin = require("gulp-cssmin"),
   uglify = require("gulp-uglify"),
@@ -15,6 +16,9 @@ let gulp = require("gulp"),
   recompress = require("imagemin-jpeg-recompress"),
   rimraf = require("rimraf"),
   browserSync = require("browser-sync"),
+
+  rev = require('gulp-rev'),
+  revReplace = require('gulp-rev-replace'),
   reload = browserSync.reload;
 
 const purgecss = require("@fullhuman/postcss-purgecss");
@@ -58,24 +62,36 @@ gulp.task("webserver", () => {
   browserSync(config);
 });
 
-gulp.task("clean", cb => {
-  rimraf(path.clean, cb);
+gulp.task('clean', function (cb) {
+  del.sync(['./build']);
+  cb()
 });
 
 gulp.task("html:build", () => {
-  gulp
+  return gulp
     .src(path.src.html, { allowEmpty: true })
     .pipe(rigger())
     .pipe(gulp.dest(path.build.html))
     .pipe(reload({ stream: true }));
 });
 
-gulp.task("js:build", () => {
-  gulp
+gulp.task("js:dev", () => {
+  return gulp
     .src(path.src.js, { allowEmpty: true })
     .pipe(rigger())
-    .pipe(sourcemaps.init())
     .pipe(babel())
+    .pipe(sourcemaps.init())
+    .pipe(concat('main.js'))
+    .pipe(sourcemaps.write())
+    .pipe(gulp.dest(path.build.js))
+    .pipe(reload({ stream: true }));
+});
+gulp.task("js:build:min", () => {
+  return gulp
+    .src(path.src.js, { allowEmpty: true })
+    .pipe(rigger())
+    .pipe(babel())
+    .pipe(sourcemaps.init())
     .pipe(concat('main.js'))
     .pipe(uglify())
     .pipe(sourcemaps.write())
@@ -87,8 +103,26 @@ class TailwindExtractor {
     return content.match(/[\w-/:]+(?<!:)/g);
   }
 }
+gulp.task("style:dev", () => {
+  return gulp
+    .src(path.src.style)
+    .pipe(
+      postcss([
+        require("postcss-import"),
+        require("tailwindcss"),
+        require("postcss-nested"),
+        purgecss({
+          content: ["./build/*.html"],
+          extractors: [{ extractor: TailwindExtractor, extensions: ["html"] }]
+        }),
+        require("autoprefixer")
+      ])
+    )
+    .pipe(gulp.dest(path.build.css))
+    .pipe(reload({ stream: true }));
+});
 gulp.task("style:build", () => {
-  gulp
+  return gulp
     .src(path.src.style)
 
     .pipe(
@@ -103,14 +137,21 @@ gulp.task("style:build", () => {
         require("autoprefixer")
       ])
     )
-    // .pipe(cssmin())
     .pipe(gcmq())
+    .pipe(cssmin())
     .pipe(gulp.dest(path.build.css))
     .pipe(reload({ stream: true }));
 });
 
+gulp.task("image:dev", () => {
+  return gulp
+    .src(path.src.img, { allowEmpty: true })
+
+    .pipe(gulp.dest(path.build.img))
+    .pipe(reload({ stream: true }));
+});
 gulp.task("image:build", () => {
-  gulp
+  return gulp
     .src(path.src.img, { allowEmpty: true })
     .pipe(
       imagemin([
@@ -131,20 +172,48 @@ gulp.task("image:build", () => {
 });
 
 gulp.task("fonts:build", () => {
-  gulp
+  return gulp
     .src(path.src.fonts, { allowEmpty: true })
     .pipe(gulp.dest(path.build.fonts));
 });
 
+gulp.task('revision', () => {
+  return gulp
+    .src(['./build/static/**/*.css', './build/static/**/*.js'])
+    .pipe(rev())
+    .pipe(gulp.dest('./build/static'))
+    .pipe(rev.manifest())
+    .pipe(gulp.dest('./build/static'))
+})
+gulp.task('revisionReplace', () => {
+  var manifest = gulp.src('./build/static/rev-manifest.json')
+  return gulp
+    .src('./build/*.html')
+    .pipe(revReplace({ manifest: manifest }))
+    .pipe(gulp.dest('./build'))
+})
+gulp.task('build', gulp.series(
+  'clean',
+  'html:build',
+  'js:build:min',
+  'style:build',
+  'fonts:build',
+  'image:build',
+  'revision',
+  'revisionReplace'
+
+)
+)
 gulp.task(
-  "build",
-  gulp.parallel(
-    "html:build",
-    "js:build",
-    // 'js:build-min',
-    "style:build",
-    "fonts:build",
-    "image:build"
+  "dev", gulp.series(
+    'clean',
+    gulp.parallel(
+      "html:build",
+      "js:dev",
+      "style:dev",
+      "fonts:build",
+      "image:dev"
+    )
   )
 );
 gulp.task("watch", () => {
